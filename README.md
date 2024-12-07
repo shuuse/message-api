@@ -6,6 +6,7 @@ A simple REST API service for storing and managing messages. This service allows
 
 - Create and store messages with sender information
 - Mark messages as read/unread
+- Retrieve and automatically mark unread messages
 - Simple API key authentication
 - Automatic timestamp addition
 - Message limit enforcement (max 1000 messages)
@@ -61,6 +62,13 @@ GET /messages/
 Header: X-API-Key: your-secret-key-here
 ```
 
+### Get and Mark Unread Messages
+```http
+GET /messages/unread
+Header: X-API-Key: your-secret-key-here
+```
+This endpoint returns all unread messages and marks them as read in a single operation.
+
 ### Mark Message as Read
 ```http
 PUT /messages/{index}/read
@@ -107,15 +115,19 @@ headers = {
     'Content-Type': 'application/json'
 }
 
+# Create a new message
 data = {
     "sender": "ChatGPT",
     "message": "Hello world",
     "read": False
 }
-
 response = requests.post('http://localhost:8000/messages/', 
                         json=data, 
                         headers=headers)
+
+# Get and mark unread messages
+unread = requests.get('http://localhost:8000/messages/unread',
+                     headers=headers)
 ```
 
 ## Contributing
