@@ -1,7 +1,7 @@
 # main.py
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security import APIKeyHeader
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from pydantic import BaseModel, Field, validator
 from typing import List
 import json
@@ -57,6 +57,59 @@ def load_messages() -> List[Message]:
 def save_messages(messages: List[Message]):
     with open(MESSAGES_FILE, 'w') as f:
         json.dump([msg.dict() for msg in messages], f)
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy_policy():
+    return """
+    <html>
+        <head>
+            <title>Message API Privacy Policy</title>
+            <style>
+                body { 
+                    font-family: Arial, sans-serif; 
+                    max-width: 800px; 
+                    margin: 40px auto; 
+                    padding: 0 20px; 
+                    line-height: 1.6; 
+                }
+            </style>
+        </head>
+        <body>
+            <h1>Privacy Policy for Message API</h1>
+            <p>Last updated: December 8, 2024</p>
+            
+            <h2>Information We Collect</h2>
+            <p>Our API service collects and stores the following information:</p>
+            <ul>
+                <li>Message content (limited to 500 characters)</li>
+                <li>Sender name</li>
+                <li>Timestamp of message creation</li>
+                <li>Message read status</li>
+            </ul>
+            
+            <h2>How We Use Information</h2>
+            <p>The collected information is used solely for:</p>
+            <ul>
+                <li>Storing and retrieving messages as requested through the API</li>
+                <li>Managing message read/unread status</li>
+            </ul>
+            
+            <h2>Data Retention</h2>
+            <p>Messages are stored until:</p>
+            <ul>
+                <li>They are automatically removed when the 1000 message limit is reached</li>
+                <li>The service is reset or redeployed</li>
+            </ul>
+            
+            <h2>Security</h2>
+            <p>Access to the API is protected by API key authentication. All requests must include a valid API key.</p>
+            
+            <h2>Contact</h2>
+            <p>For any privacy-related questions, please create an issue in the GitHub repository.</p>
+        </body>
+    </html>
+    """
 
 @app.get("/.well-known/openapi.yaml")
 async def get_openapi_yaml():
