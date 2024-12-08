@@ -11,7 +11,7 @@ app = FastAPI()
 
 # Simple file-based storage
 MESSAGES_FILE = "messages.json"
-API_KEY = os.getenv("API_KEY", "your-secret-key-here")  # Set this in deployment
+API_KEY = os.getenv("API_KEY", "REMOVED")  # Set this in deployment
 
 # Security
 api_key_header = APIKeyHeader(name="X-API-Key")
@@ -57,6 +57,23 @@ async def create_message(message: Message, api_key: str = Depends(verify_api_key
 @app.get("/messages/", response_model=List[Message])
 async def get_messages(api_key: str = Depends(verify_api_key)):
     return load_messages()
+
+@app.get("/messages/unread", response_model=List[Message])
+async def get_and_mark_unread_messages(api_key: str = Depends(verify_api_key)):
+    messages = load_messages()
+    unread_messages = []
+    
+    # Find unread messages and mark them as read
+    for message in messages:
+        if not message.read:
+            message.read = True
+            unread_messages.append(message)
+    
+    # Save the updated read status
+    if unread_messages:
+        save_messages(messages)
+    
+    return unread_messages
 
 @app.put("/messages/{index}/read")
 async def mark_as_read(index: int, api_key: str = Depends(verify_api_key)):
