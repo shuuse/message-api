@@ -194,6 +194,18 @@ The API may return the following error responses:
 - 403 Forbidden: Invalid or missing API key
 - 404 Not Found: Message ID not found when marking as read
 
+## Privacy Policy
+
+The API includes a privacy policy that outlines how we handle message data. The policy covers:
+- Types of information collected
+- Data retention policies
+- Security measures
+- Message limitations
+
+You can view the complete privacy policy at: https://message-api-0rws.onrender.com/privacy
+
+This privacy policy URL is included in the OpenAPI schema and is required for ChatGPT Actions integration. If you're forking or modifying this project, make sure to update the privacy policy to reflect your specific implementation.
+
 ## API Documentation
 
 When running the service, visit `/docs` to see the automatic OpenAPI documentation and test the endpoints interactively.
