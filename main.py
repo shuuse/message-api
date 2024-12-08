@@ -1,17 +1,25 @@
 # main.py
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security import APIKeyHeader
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List
 import json
 from datetime import datetime
 import os
+import uuid
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = FastAPI()
 
 # Simple file-based storage
 MESSAGES_FILE = "messages.json"
-API_KEY = os.getenv("API_KEY", "REMOVED")  # Set this in deployment
+API_KEY = os.getenv("API_KEY")
+
+if not API_KEY:
+    raise ValueError("API_KEY environment variable must be set")
 
 # Security
 api_key_header = APIKeyHeader(name="X-API-Key")
@@ -23,6 +31,7 @@ async def verify_api_key(api_key: str = Depends(api_key_header)):
 
 # Data model
 class Message(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     sender: str
     message: str
     read: bool = False
@@ -59,32 +68,20 @@ async def get_messages(api_key: str = Depends(verify_api_key)):
     return load_messages()
 
 @app.get("/messages/unread", response_model=List[Message])
-async def get_and_mark_unread_messages(api_key: str = Depends(verify_api_key)):
+async def get_unread_messages(api_key: str = Depends(verify_api_key)):
     messages = load_messages()
-    unread_messages = []
-    
-    # Find unread messages and mark them as read
-    for message in messages:
-        if not message.read:
-            message.read = True
-            unread_messages.append(message)
-    
-    # Save the updated read status
-    if unread_messages:
-        save_messages(messages)
-    
-    return unread_messages
+    return [msg for msg in messages if not msg.read]
 
-@app.put("/messages/{index}/read")
-async def mark_as_read(index: int, api_key: str = Depends(verify_api_key)):
+@app.put("/messages/{message_id}/read")
+async def mark_as_read(message_id: str, api_key: str = Depends(verify_api_key)):
     messages = load_messages()
-    if 0 <= index < len(messages):
-        messages[index].read = True
-        save_messages(messages)
-        return {"status": "success"}
+    for message in messages:
+        if message.id == message_id:
+            message.read = True
+            save_messages(messages)
+            return {"status": "success"}
     raise HTTPException(status_code=404, detail="Message not found")
 
-# Optional: Add endpoint to clear old messages if needed
 @app.delete("/messages/cleanup")
 async def cleanup_messages(api_key: str = Depends(verify_api_key)):
     messages = load_messages()
