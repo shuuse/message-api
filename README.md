@@ -162,6 +162,22 @@ git push
 
 Note: The free tier of Render will spin down your service after 15 minutes of inactivity. The first request after inactivity might take a few seconds to respond while the service spins up again.
 
+
+## ChatGPT Actions Integration
+
+This API includes a special endpoint for ChatGPT Actions integration. To add this API as a ChatGPT action:
+
+1. Go to ChatGPT's actions configuration
+2. Choose "Import from URL"
+3. Enter: `https://message-api-0rws.onrender.com/.well-known/openapi.yaml`
+4. Configure the authentication:
+   - Authentication Type: API Key
+   - API Key: Your API key from the .env file
+   - Header Name: X-API-Key
+
+The action will allow ChatGPT to create new messages through your API. The schema endpoint (`/.well-known/openapi.yaml`) provides a simplified OpenAPI specification specifically designed for ChatGPT actions.
+
+
 ## API Documentation
 
 When running the service, visit `/docs` to see the automatic OpenAPI documentation and test the endpoints interactively.

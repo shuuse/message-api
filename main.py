@@ -1,6 +1,7 @@
 # main.py
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security import APIKeyHeader
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import List
 import json
@@ -49,6 +50,102 @@ def load_messages() -> List[Message]:
 def save_messages(messages: List[Message]):
     with open(MESSAGES_FILE, 'w') as f:
         json.dump([msg.dict() for msg in messages], f)
+
+@app.get("/.well-known/openapi.yaml")
+async def get_openapi_yaml():
+    """
+    Provides a simplified OpenAPI schema specifically for ChatGPT actions.
+    This endpoint doesn't require authentication to allow ChatGPT to fetch the schema.
+    """
+    openapi_schema = {
+        "openapi": "3.0.0",
+        "info": {
+            "title": "Message API",
+            "description": "API for sending messages",
+            "version": "1.0.0"
+        },
+        "servers": [
+            {
+                "url": "https://message-api-0rws.onrender.com"  # Replace with your actual URL
+            }
+        ],
+        "paths": {
+            "/messages/": {
+                "post": {
+                    "summary": "Create a new message",
+                    "operationId": "createMessage",
+                    "security": [
+                        {
+                            "ApiKeyAuth": []
+                        }
+                    ],
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": ["sender", "message"],
+                                    "properties": {
+                                        "sender": {
+                                            "type": "string",
+                                            "description": "Name of the message sender"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Content of the message"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "Message created successfully",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string",
+                                                "format": "uuid"
+                                            },
+                                            "sender": {
+                                                "type": "string"
+                                            },
+                                            "message": {
+                                                "type": "string"
+                                            },
+                                            "read": {
+                                                "type": "boolean"
+                                            },
+                                            "timestamp": {
+                                                "type": "string",
+                                                "format": "date-time"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "components": {
+            "securitySchemes": {
+                "ApiKeyAuth": {
+                    "type": "apiKey",
+                    "in": "header",
+                    "name": "X-API-Key"
+                }
+            }
+        }
+    }
+    return JSONResponse(content=openapi_schema)
+
 
 # API endpoints
 @app.post("/messages/", response_model=Message)
