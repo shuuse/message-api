@@ -180,6 +180,20 @@ Once configured, you can test the action by asking ChatGPT to send a test messag
 
 Example prompt: "Send a test message using the Message API"
 
+## Message Constraints
+
+- Maximum message length: 500 characters
+- If a message exceeds this limit, the API will return a 400 error with a descriptive message
+- This limit applies to all messages, including those sent through ChatGPT actions
+
+## Error Responses
+
+The API may return the following error responses:
+
+- 400 Bad Request: Message exceeds 500 characters or other validation errors
+- 403 Forbidden: Invalid or missing API key
+- 404 Not Found: Message ID not found when marking as read
+
 ## API Documentation
 
 When running the service, visit `/docs` to see the automatic OpenAPI documentation and test the endpoints interactively.

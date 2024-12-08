@@ -2,7 +2,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security import APIKeyHeader
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from typing import List
 import json
 from datetime import datetime
@@ -18,6 +18,7 @@ app = FastAPI()
 # Simple file-based storage
 MESSAGES_FILE = "messages.json"
 API_KEY = os.getenv("API_KEY")
+MAX_MESSAGE_LENGTH = 500
 
 if not API_KEY:
     raise ValueError("API_KEY environment variable must be set")
@@ -37,6 +38,12 @@ class Message(BaseModel):
     message: str
     read: bool = False
     timestamp: str = None
+    
+    @validator('message')
+    def validate_message_length(cls, v):
+        if len(v) > MAX_MESSAGE_LENGTH:
+            raise ValueError(f'Message must be {MAX_MESSAGE_LENGTH} characters or less')
+        return v
 
 # Initialize storage
 def load_messages() -> List[Message]:
@@ -55,18 +62,17 @@ def save_messages(messages: List[Message]):
 async def get_openapi_yaml():
     """
     Provides a simplified OpenAPI schema specifically for ChatGPT actions.
-    This endpoint doesn't require authentication to allow ChatGPT to fetch the schema.
     """
     openapi_schema = {
-        "openapi": "3.0.0",
+        "openapi": "3.1.0",
         "info": {
             "title": "Message API",
-            "description": "API for sending messages",
+            "description": f"API for sending messages (max {MAX_MESSAGE_LENGTH} characters)",
             "version": "1.0.0"
         },
         "servers": [
             {
-                "url": "https://message-api-0rws.onrender.com"  # Replace with your actual URL
+                "url": "https://message-api-0rws.onrender.com"
             }
         ],
         "paths": {
@@ -93,7 +99,8 @@ async def get_openapi_yaml():
                                         },
                                         "message": {
                                             "type": "string",
-                                            "description": "Content of the message"
+                                            "description": f"Content of the message (max {MAX_MESSAGE_LENGTH} characters)",
+                                            "maxLength": MAX_MESSAGE_LENGTH
                                         }
                                     }
                                 }
@@ -129,12 +136,28 @@ async def get_openapi_yaml():
                                     }
                                 }
                             }
+                        },
+                        "400": {
+                            "description": "Message too long or validation error",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "detail": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
         },
         "components": {
+            "schemas": {},
             "securitySchemes": {
                 "ApiKeyAuth": {
                     "type": "apiKey",
