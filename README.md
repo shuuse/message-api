@@ -5,9 +5,10 @@ A simple REST API service for storing and managing messages. This service allows
 ## Features
 
 - Create and store messages with sender information
-- Mark messages as read/unread
-- Retrieve and automatically mark unread messages
-- Simple API key authentication
+- Each message has a unique UUID
+- View unread messages without changing their status
+- Mark specific messages as read using their UUID
+- Simple API key authentication using environment variables
 - Automatic timestamp addition
 - Message limit enforcement (max 1000 messages)
 - File-based storage
@@ -32,6 +33,11 @@ source venv/bin/activate  # On Windows, use: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+4. Create a `.env` file in the root directory:
+```bash
+echo "API_KEY=your-secret-key-here" > .env
+```
+
 ## Running the Service
 
 Start the service locally:
@@ -51,10 +57,10 @@ Content-Type: application/json
 
 {
     "sender": "ChatGPT",
-    "message": "Hello world",
-    "read": false
+    "message": "Hello world"
 }
 ```
+Response includes an automatically generated UUID for the message.
 
 ### Get All Messages
 ```http
@@ -62,18 +68,18 @@ GET /messages/
 Header: X-API-Key: your-secret-key-here
 ```
 
-### Get and Mark Unread Messages
+### Get Unread Messages (without marking them as read)
 ```http
 GET /messages/unread
 Header: X-API-Key: your-secret-key-here
 ```
-This endpoint returns all unread messages and marks them as read in a single operation.
 
-### Mark Message as Read
+### Mark Specific Message as Read
 ```http
-PUT /messages/{index}/read
+PUT /messages/{uuid}/read
 Header: X-API-Key: your-secret-key-here
 ```
+Replace `{uuid}` with the actual message UUID.
 
 ### Cleanup Old Messages
 ```http
@@ -81,32 +87,27 @@ DELETE /messages/cleanup
 Header: X-API-Key: your-secret-key-here
 ```
 
-## Configuration
+## Testing
 
-The API key is set through an environment variable. Before running the service, set your API key:
+Here's a complete test sequence using curl:
 
 ```bash
-export API_KEY=your-secret-key-here
+# Create a new message
+curl -X POST http://localhost:8000/messages/ \
+  -H "X-API-Key: your-secret-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{"sender": "Test", "message": "Hello World"}'
+
+# Get the UUID from the response, then use it to mark as read
+curl -X PUT http://localhost:8000/messages/[UUID]/read \
+  -H "X-API-Key: your-secret-key-here"
+
+# View unread messages
+curl -X GET http://localhost:8000/messages/unread \
+  -H "X-API-Key: your-secret-key-here"
 ```
 
-## Deployment
-
-This service can be deployed for free on Render.com:
-
-1. Create a new Web Service on Render
-2. Link your GitHub repository
-3. Configure the service:
-   - Build Command: `pip install -r requirements.txt`
-   - Start Command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-   - Add environment variable: `API_KEY`
-
-## API Documentation
-
-When running the service, visit `/docs` to see the automatic OpenAPI documentation and test the endpoints interactively.
-
-## Example Usage
-
-Python example using requests:
+Python example:
 ```python
 import requests
 
@@ -118,17 +119,59 @@ headers = {
 # Create a new message
 data = {
     "sender": "ChatGPT",
-    "message": "Hello world",
-    "read": False
+    "message": "Hello world"
 }
 response = requests.post('http://localhost:8000/messages/', 
                         json=data, 
                         headers=headers)
+message_id = response.json()['id']
 
-# Get and mark unread messages
+# Get unread messages
 unread = requests.get('http://localhost:8000/messages/unread',
                      headers=headers)
+
+# Mark specific message as read
+requests.put(f'http://localhost:8000/messages/{message_id}/read',
+            headers=headers)
 ```
+
+## Deployment
+
+### Initial Deployment to Render
+
+1. Create a free account on Render.com
+2. Create a new Web Service and connect your GitHub repository
+3. Configure the service:
+   - Build Command: `pip install -r requirements.txt`
+   - Start Command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+   - Add environment variable: `API_KEY` with your chosen secret key
+4. Deploy the service
+
+### Updating the Deployment
+
+The service will automatically redeploy when you push changes to GitHub. To update:
+
+1. Make your changes locally
+2. Commit and push to GitHub:
+```bash
+git add .
+git commit -m "Your commit message"
+git push
+```
+3. Render will automatically detect the changes and redeploy
+
+Note: The free tier of Render will spin down your service after 15 minutes of inactivity. The first request after inactivity might take a few seconds to respond while the service spins up again.
+
+## API Documentation
+
+When running the service, visit `/docs` to see the automatic OpenAPI documentation and test the endpoints interactively.
+
+## Security Notes
+
+- Keep your API key secure and never commit it to the repository
+- The `.env` file is included in `.gitignore` to prevent accidental exposure
+- Use a strong, random API key in production
+- Always use HTTPS when calling the API in production
 
 ## Contributing
 
