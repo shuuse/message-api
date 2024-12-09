@@ -6,7 +6,10 @@ from pydantic import BaseModel, Field, validator
 from typing import List
 import json
 from datetime import datetime
-import os
+import asyncio
+import aiohttp
+import logging
+from typing import Optional
 import uuid
 from dotenv import load_dotenv
 
@@ -14,14 +17,33 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI()
+ping_task: Optional[asyncio.Task] = None
 
-# Simple file-based storage
-MESSAGES_FILE = "messages.json"
-API_KEY = os.getenv("API_KEY")
-MAX_MESSAGE_LENGTH = 500
 
 if not API_KEY:
     raise ValueError("API_KEY environment variable must be set")
+
+async def ping_server():
+    """Keeps the server alive by pinging it every 5 minutes"""
+    async with aiohttp.ClientSession() as session:
+        while True:
+            try:
+                async with session.get("https://message-api-0rws.onrender.com/messages/") as response:
+                    logging.info(f"Ping status: {response.status}")
+                await asyncio.sleep(300)  # 5 minutes
+            except Exception as e:
+                logging.error(f"Ping failed: {e}")
+                await asyncio.sleep(60)  # Wait 1 minute on error
+
+@app.on_event("startup")
+async def start_ping():
+    global ping_task
+    ping_task = asyncio.create_task(ping_server())
+
+@app.on_event("shutdown")
+async def stop_ping():
+    if ping_task:
+        ping_task.cancel()
 
 # Security
 api_key_header = APIKeyHeader(name="X-API-Key")
