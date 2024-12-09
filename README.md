@@ -186,6 +186,20 @@ Example prompt: "Send a test message using the Message API"
 - If a message exceeds this limit, the API will return a 400 error with a descriptive message
 - This limit applies to all messages, including those sent through ChatGPT actions
 
+## Server Uptime Management
+
+The API includes a self-pinging mechanism to prevent Render's free tier from spinning down after 15 minutes of inactivity. The server pings itself every 5 minutes to stay active.
+
+**Technical Details:**
+- Ping interval: 5 minutes
+- Target endpoint: `/messages/`
+- Error handling: 1-minute retry on failed pings
+- Uses aiohttp for async HTTP requests
+- Runs automatically on server startup
+- Graceful shutdown on server stop
+
+This ensures continuous availability for ChatGPT actions and other API consumers without the 30-second cold start delay.
+
 ## Error Responses
 
 The API may return the following error responses:
