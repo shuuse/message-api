@@ -11,6 +11,7 @@ import aiohttp
 import logging
 from typing import Optional
 import uuid
+import os
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -19,6 +20,9 @@ load_dotenv()
 app = FastAPI()
 ping_task: Optional[asyncio.Task] = None
 
+MESSAGES_FILE = "messages.json"
+API_KEY = os.getenv("API_KEY")
+MAX_MESSAGE_LENGTH = 500
 
 if not API_KEY:
     raise ValueError("API_KEY environment variable must be set")
